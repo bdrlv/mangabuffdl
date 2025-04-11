@@ -11,7 +11,7 @@
 
 ## Установка
 
-1. Скачайте повледний [релиз отсюда](https://github.com/bdrlv/mangabuffdl/releases) 
+1. Скачивайте последний [релиз отсюда](https://github.com/bdrlv/mangabuffdl/releases) 
 
 ## Использование
 
