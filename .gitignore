@@ -3,3 +3,5 @@
 *.bat
 /cbz
 /archive
+*.zip
+/build
