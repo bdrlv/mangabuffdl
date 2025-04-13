@@ -1,5 +1,7 @@
 package core
 
+import "time"
+
 type ChapterInfo struct {
 	Number int
 	Pages  []Page
@@ -21,4 +23,10 @@ type Parser interface {
 	ParseChapter(url string) (*ChapterInfo, error)
 	GetChapterURL(volume, chapter int) string
 	GetMangaName() string
+}
+
+type ParallelEngine struct {
+	Chapters int
+	Pages    int
+	Delay    time.Duration
 }

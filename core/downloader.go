@@ -17,12 +17,12 @@ type HttpDownloader struct {
 func (d *HttpDownloader) DownloadImage(imgURL string, filePath string) error {
 	parsedURL, err := url.ParseRequestURI(imgURL)
 	if err != nil {
-		return fmt.Errorf("invalid URL: %w", err)
+		return fmt.Errorf("неверный URL: %w", err)
 	}
 
 	req, err := http.NewRequest("GET", parsedURL.String(), nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return fmt.Errorf("ошибка формирования запроса: %w", err)
 	}
 
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36")
@@ -42,29 +42,32 @@ func (d *HttpDownloader) DownloadImage(imgURL string, filePath string) error {
 	}
 
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		return fmt.Errorf("failed to create directories: %w", err)
+		return fmt.Errorf("ошибка создания каталога: %w", err)
 	}
 
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
 		if os.IsExist(err) {
-			return fmt.Errorf("file already exists: %s", filePath)
+			return fmt.Errorf("файл уже существует: %s", filePath)
 		}
-		return fmt.Errorf("failed to create file: %w", err)
+		return fmt.Errorf("ошибка создания файла: %w", err)
 	}
 	defer file.Close()
 
 	size, err := io.Copy(file, resp.Body)
 	if err != nil {
 		os.Remove(filePath)
-		return fmt.Errorf("failed to save image: %w", err)
+		return fmt.Errorf("ошибка сохранения страницы: %w", err)
 	}
 
 	duration := time.Since(startTime)
 	speed := float64(size) / duration.Seconds() / 1024 // KB/s
 
-	fmt.Printf("Downloaded: %s\n", filePath)
-	fmt.Printf("Size: %.2f KB, Time: %v, Speed: %.2f KB/s\n\n",
+	// fmt.Printf("Загрузка: %s\n", filePath)
+	// fmt.Printf("Size: %.2f KB, Time: %v, Speed: %.2f KB/s\n\n",
+	// 	float64(size)/1024, duration.Round(time.Millisecond), speed)
+
+	fmt.Printf("Загрузка: %s\n Size: %.2f KB, Time: %v, Speed: %.2f KB/s\n\n", filePath,
 		float64(size)/1024, duration.Round(time.Millisecond), speed)
 
 	return nil
