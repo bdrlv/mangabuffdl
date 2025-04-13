@@ -32,17 +32,17 @@
 
 Скачать том 1, главы 1-5:
 ```bash
-./mb.exe -u "https://mangabuff.ru/manga/ya-budu-korolem-v-etoi-zhizni" -s 1 -e 5
+./mb.exe -u "https://mangabuff.ru/manga/manga_name" -s 1 -e 5
 ```
 
 Скачать том 3, главу 10:
 ```bash
-./mb.exe -u "https://mangabuff.ru/manga/ya-budu-korolem-v-etoi-zhizni" -v 3 -s 10 -e 10
+./mb.exe -u "https://mangabuff.ru/manga/manga_name" -v 3 -s 10 -e 10
 ```
 
 Скачать все главы тома 2:
 ```bash
-./mb.exe -u "https://mangabuff.ru/manga/ya-budu-korolem-v-etoi-zhizni" -v 2 -s 1 -e 999
+./mb.exe -u "https://mangabuff.ru/manga/manga_name" -v 2 -s 1 -e 999
 ```
 
 ## Структура файлов
@@ -50,12 +50,13 @@
 После скачивания файлы сохраняются в следующей структуре:
 ```
 manga_name/
-  Chapter 1/
-    1.jpg
-    2.jpg
+  Chapter 0001/
+    0001.jpg
+    0002.jpg
     ...
-  Chapter 2/
-    ...
+  Chapter 0002/
+  Chapter 0015/
+  Chapter 0123/
 ```
 
 ## Ограничения
@@ -102,4 +103,3 @@ manga_name/
 ---
 
 **Поддержка**: Для сообщений об ошибках используйте [Issues](https://github.com/bdrlv/mangabuffdl/issues)
-```
