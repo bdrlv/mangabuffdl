@@ -47,24 +47,26 @@ func (d *MangaDownloader) DownloadManga(baseURL string, volume, startChapter, en
 	}
 
 	for chapter := startChapter; chapter <= endChapter; chapter++ {
-		fmt.Printf("\nТом %d, Глава %d...\n", volume, chapter)
+		formattedChapter := fmt.Sprintf("%04d", chapter)
+		fmt.Printf("\nТом %d, Глава %s...\n", volume, formattedChapter)
 
 		retries := 0
 		for retries < d.MaxRetries {
-			err := d.downloadChapter(mangaURL, mangaName, volume, chapter)
+			err := d.downloadChapter(mangaURL, mangaName, volume, chapter, formattedChapter)
 			if err == nil {
 				break
 			}
 
 			retries++
 			if retries >= d.MaxRetries {
-				fmt.Printf("Превышено количество попыток для тома %d главы %d: %v\n", volume, chapter, err)
+				fmt.Printf("Превышено количество попыток для тома %d главы %s: %v\n",
+					volume, formattedChapter, err)
 				break
 			}
 
 			delay := d.BaseDelay * time.Duration(retries)
-			fmt.Printf("Ошибка в томе %d главе %d (попытка %d/%d): %v. Повтор через %v...\n",
-				volume, chapter, retries, d.MaxRetries, err, delay)
+			fmt.Printf("Ошибка в томе %d главе %s (попытка %d/%d): %v. Повтор через %v...\n",
+				volume, formattedChapter, retries, d.MaxRetries, err, delay)
 			time.Sleep(delay)
 		}
 
@@ -75,7 +77,7 @@ func (d *MangaDownloader) DownloadManga(baseURL string, volume, startChapter, en
 	return nil
 }
 
-func (d *MangaDownloader) downloadChapter(mangaURL, mangaName string, volume, chapter int) error {
+func (d *MangaDownloader) downloadChapter(mangaURL, mangaName string, volume, chapter int, formattedChapter string) error {
 	chapterURL := fmt.Sprintf("%s/%d", mangaURL, chapter)
 	fmt.Printf("URL главы: %s\n", chapterURL)
 
@@ -100,36 +102,54 @@ func (d *MangaDownloader) downloadChapter(mangaURL, mangaName string, volume, ch
 		return fmt.Errorf("ошибка парсинга HTML: %v", err)
 	}
 
-	chapterPath := path.Join(mangaName, fmt.Sprintf("Chapter %d", chapter))
+	chapterPath := path.Join(mangaName, fmt.Sprintf("Chapter %s", formattedChapter))
 	if err := os.MkdirAll(chapterPath, 0750); err != nil {
 		return fmt.Errorf("ошибка создания папки: %v", err)
 	}
 
 	doc.Find("div.reader__pages div.reader__item").Each(func(i int, item *goquery.Selection) {
-		pageNum := item.AttrOr("data-page", strconv.Itoa(i+1))
+		pageNumStr := item.AttrOr("data-page", "")
+		var pageNumber int
+
+		if pageNumStr == "" {
+			pageNumber = i + 1
+		} else {
+			var err error
+			pageNumber, err = strconv.Atoi(pageNumStr)
+			if err != nil {
+				pageNumber = i + 1
+			}
+		}
+
+		formattedPage := fmt.Sprintf("%04d", pageNumber)
+
 		img := item.Find("img")
 		if img.Length() == 0 {
-			fmt.Printf("Том %d, Глава %d, страница %s: нет изображения\n", volume, chapter, pageNum)
+			fmt.Printf("Том %d, Глава %s, страница %s: нет изображения\n",
+				volume, formattedChapter, formattedPage)
 			return
 		}
 
 		imgSrc := img.AttrOr("src", img.AttrOr("data-src", ""))
 		if imgSrc == "" {
-			fmt.Printf("Том %d, Глава %d, страница %s: пустая ссылка\n", volume, chapter, pageNum)
+			fmt.Printf("Том %d, Глава %s, страница %s: пустая ссылка\n",
+				volume, formattedChapter, formattedPage)
 			return
 		}
 
 		imgSrc = strings.Split(imgSrc, "?")[0]
 		ext := strings.ToLower(path.Ext(imgSrc))
 		if ext == "" {
-			fmt.Printf("Том %d, Глава %d, страница %s: неизвестное расширение\n", volume, chapter, pageNum)
+			fmt.Printf("Том %d, Глава %s, страница %s: неизвестное расширение\n",
+				volume, formattedChapter, formattedPage)
 			return
 		}
 		ext = ext[1:]
 
-		filePath := path.Join(chapterPath, fmt.Sprintf("%s.%s", pageNum, ext))
+		filePath := path.Join(chapterPath, fmt.Sprintf("%s.%s", formattedPage, ext))
 		if err := d.downloadImage(imgSrc, filePath, mangaURL); err != nil {
-			fmt.Printf("Том %d, Глава %d, страница %s: ошибка скачивания: %v\n", volume, chapter, pageNum, err)
+			fmt.Printf("Том %d, Глава %s, страница %s: ошибка скачивания: %v\n",
+				volume, formattedChapter, formattedPage, err)
 		}
 	})
 
@@ -193,7 +213,7 @@ func extractMangaName(mangaURL string) string {
 }
 
 func main() {
-	urlFlag := flag.String("u", "", "Базовый URL манги (например, https://mangabuff.ru/manga/ya-budu-korolem-v-etoi-zhizni)")
+	urlFlag := flag.String("u", "", "Базовый URL манги (например, https://mangabuff.ru/manga/title)")
 	volumeFlag := flag.Int("v", 1, "Номер тома")
 	startFlag := flag.Int("s", 1, "Номер первой главы")
 	endFlag := flag.Int("e", 1, "Номер последней главы")
