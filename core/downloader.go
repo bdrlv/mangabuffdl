@@ -67,7 +67,7 @@ func (d *HttpDownloader) DownloadImage(imgURL string, filePath string) error {
 	// fmt.Printf("Size: %.2f KB, Time: %v, Speed: %.2f KB/s\n\n",
 	// 	float64(size)/1024, duration.Round(time.Millisecond), speed)
 
-	fmt.Printf("Загрузка: %s\n Size: %.2f KB, Time: %v, Speed: %.2f KB/s\n\n", filePath,
+	fmt.Printf("Загрузка: %s Size: %.2f KB, Time: %v, Speed: %.2f KB/s\n", filePath,
 		float64(size)/1024, duration.Round(time.Millisecond), speed)
 
 	return nil

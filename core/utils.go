@@ -35,10 +35,15 @@ func ExtractMangaNameFromURL(rawURL string) string {
 	}
 
 	parts := strings.Split(u.Path, "/")
+	// for i := range parts {
+	// 	fmt.Println(parts[i])
+	// }
+	// panic(parts)
 	for i := len(parts) - 1; i >= 0; i-- {
 		part := strings.TrimSpace(parts[i])
 		if part != "" && part != "manga" {
-			return strings.ReplaceAll(part, "-", " ")
+			return part
+			// return strings.ReplaceAll(part, "-", " ")
 		}
 	}
 	return "manga"
