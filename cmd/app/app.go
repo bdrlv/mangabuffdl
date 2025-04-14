@@ -4,52 +4,64 @@ import (
 	"log"
 	"mbd/core"
 	"mbd/sources"
-	"path"
 	"path/filepath"
 )
 
-func App(urlFlag *string, volumeFlag, startFlag, endFlag *int) error {
-	parser, err := sources.NewParser(*urlFlag)
+type App struct {
+	parser     core.Parser
+	downloader *core.HttpDownloader
+	engine     *core.ParallelEngine
+	mangaName  string
+}
+
+func NewDownloaderApp(url string, engine *core.ParallelEngine) (*App, error) {
+	parser, err := sources.NewParser(url)
 	if err != nil {
-		log.Fatalf("ошибка инициализации: %v", err)
+		return nil, err
 	}
 
-	downloader := &core.HttpDownloader{
-		Client: core.CreateDefaultClient(),
+	return &App{
+		parser:     parser,
+		downloader: &core.HttpDownloader{Client: core.CreateDefaultClient()},
+		engine:     engine,
+		mangaName:  parser.GetMangaName(),
+	}, nil
+}
+
+func (a *App) Run(volume, startChapter, endChapter int) error {
+	// Создаем корневую папку
+	if err := a.downloader.CreateDir(a.mangaName); err != nil {
+		return err
 	}
 
-	mangaName := parser.GetMangaName()
-	if err := downloader.CreateDir(mangaName); err != nil {
-		log.Fatalf("ошибка создания каталога тайтла: %v", err)
-	}
-
-	for chapterNum := *startFlag; chapterNum <= *endFlag; chapterNum++ {
+	// Обрабатываем главы параллельно
+	a.engine.ProcessChapters(endChapter-startChapter+1, func(chapter int) {
+		chapterNum := startChapter + chapter - 1
 		log.Printf("Обработка главы %d", chapterNum)
 
-		chapterURL := parser.GetChapterURL(*volumeFlag, chapterNum)
-
-		chapterInfo, err := parser.ParseChapter(chapterURL)
+		chapterURL := a.parser.GetChapterURL(volume, chapterNum)
+		chapterInfo, err := a.parser.ParseChapter(chapterURL)
 		if err != nil {
 			log.Printf("Ошибка парсинга главы %d: %v", chapterNum, err)
-			continue
+			return
 		}
 
-		chapterDir := path.Join(mangaName, core.FormatChapterDir(chapterNum))
-		if err := downloader.CreateDir(chapterDir); err != nil {
-			log.Printf("Ошибка создания каталога для главы %d: %v", chapterNum, err)
-			continue
+		chapterDir := filepath.Join(a.mangaName, core.FormatChapterDir(chapterNum))
+		if err := a.downloader.CreateDir(chapterDir); err != nil {
+			log.Printf("Ошибка создания каталога главы %d: %v", chapterNum, err)
+			return
 		}
 
-		for _, page := range chapterInfo.Pages {
+		// Обрабатываем страницы параллельно с задержкой
+		a.engine.ProcessPages(chapterInfo.Pages, func(page core.Page) {
 			fileName := core.FormatFileName(page.Number, page.FileExt)
 			fullPath := filepath.Join(chapterDir, fileName)
 
-			if err := downloader.DownloadImage(page.ImageURL, fullPath); err != nil {
+			if err := a.downloader.DownloadImage(page.ImageURL, fullPath); err != nil {
 				log.Printf("Ошибка скачивания страницы %d: %v", page.Number, err)
-				continue
 			}
-		}
-	}
+		})
+	})
 
 	return nil
 }
